@@ -1,0 +1,229 @@
+start serve in laravel
+-> php artisan serve
+
+make a controller
+->php artisan make:controller Management/MenuController --resource
+The controller will be found in the App/Http/controllers/Management/MenuController
+
+then you go to routes/ web.php to create a route (type as follows)
+Route::resource('management/menu', 'Management\MenuController');
+
+the we create the view by going to the resources/management then create the view
+file named menu.blade.php
+
+then go to controller and make it return view
+public function index()
+    {
+        return view('management.menu');
+    }
+
+now we will create a model
+-> php artisan make:model Menu -m
+Menu is the file name and -m is for the migration file to connect to the datebase
+in /APP we will get the Menu file
+in/datebase/migration we get a file 2021_11_04_095952_create_menus_table.php
+in that file we will use it to create the Menu table on the function up
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create('menus', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->string('name');
+            $table->decimal('price',8,2);
+            $table->string('image');
+            $table->text('description');
+            $table->integer('category_id');
+            $table->timestamps();
+        });
+    }
+then we will run the command below to execute the tabel
+-> php artisan migrate
+
+to view the route list go C:\xampp\htdocs\restaurantapp right click open git bash the route
+-> php artisan route:list
+a list of routes will be displayed for
+|        | POST      | management/menu                     | menu.store       | App\Http\Controllers\Management\MenuController@store                   | web          |
+|        | GET|HEAD  | management/menu                     | menu.index       | App\Http\Controllers\Management\MenuController@index                   | web          |
+|        | GET|HEAD  | management/menu/create              | menu.create      | App\Http\Controllers\Management\MenuController@create                  | web          |
+|        | PUT|PATCH | management/menu/{menu}              | menu.update      | App\Http\Controllers\Management\MenuController@update                  | web          |
+|        | GET|HEAD  | management/menu/{menu}              | menu.show
+and more
+
+go to views management the menu.blade.php make the link to creat menu
+<a  href="/management/menu/create" class="btn btn-success btn-sm float-right"><i class="fas fa-plus"></i> Create Menu</a>
+then we go to app/http/controller/management/menuController
+    /**
+     * Show the form for creating a new resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function create()
+    {
+        //
+        return view('management.craeteMenu');
+    }
+
+create createMenu.blade.php under views/management/
+
+// to use model category in ordor to get data from table category
+/app/http/controller/management/menuController
+
+use App\Category;
+we pass the data this way
+    /**
+     * Show the form for creating a new resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function create()
+    {
+        //
+        $categories= Category::all();
+        return view('management.createMenu')->with('categories', $categories);
+    }
+
+
+
+// this.http.get('http://dev-cmx-tickets-alpha:8080').subscribe(data => console.log(data));
+    this.http
+      .get('http://dev-cmx-tickets-alpha:8080/public/index.php')
+      .pipe(catchError((error: any) => {
+        console.log('error details...');
+        console.log(error);
+        throw new Error(error);
+      }))
+      .subscribe((data) => {
+        console.log(data);
+      });
+
+    this.http.get('http://dev-cmx-tickets-alpha:8080/api/session/validate')
+    .pipe(catchError((error: any) => {
+      console.log('error details...');
+      console.log(error);
+      throw new Error(error);
+    }))
+      .subscribe(data => console.log(data));
+
+    this.http.get('http://dev-cmx-tickets-alpha:8080/tickets-ad/public/index.php')
+    .subscribe(res => console.log(res));
+
+/**************************angular sessions*****************************/
+import { Injectable } from '@angular/core'
+import { Router } from '@angular/router'
+import { BnNgIdleService } from 'bn-ng-idle'
+import { CookieService } from 'ngx-cookie-service'
+import { MenuService } from './menu.service'
+import { PostService } from './post.service'
+@Injectable({ providedIn: 'root' })
+export class SessionRefreshService {
+
+  constructor(
+    private idleService: BnNgIdleService,
+    private router: Router,
+    private post: PostService,
+    private menuService: MenuService,
+    private cookieService: CookieService,
+  ) {}
+
+  inactivityWatcher(): void {
+    this.idleService.startWatching(180) // seconds to minutes = 3minutes
+      .subscribe((isTimeOut: boolean) => {
+          this.checkTimeOut(isTimeOut);
+    });
+  }
+
+  stopThenResetTimer(): void {
+      this.idleService.stopTimer();
+      this.idleService.resetTimer();
+  }
+
+  checkTimeOut(isTimeOut: boolean): void {
+    const cRoute = this.router.url;
+    if  (cRoute !== '/login' && cRoute !== '/error') {
+        if (isTimeOut) { this.checkForm(); }
+    }
+  }
+
+  checkForm(): void {
+      // this entire function will be invoked during watch period
+
+      // get current url
+      const cRoute = this.router.url;
+
+      // get the DOM elements of jira form and it's iframe
+      const iFrame = document.querySelector('iframe');
+      const formBackDrop = document.querySelector('.atlwdg-blanket') as HTMLElement;
+      const form = document.querySelector('.atlwdg-popup') as HTMLElement;
+      let closed = false;
+
+      // when iframe and jira form and form backdrop are open
+      if (!this.isEmpty(iFrame) && !this.isEmpty(form) && !this.isEmpty(formBackDrop)){
+          // check the current route of where the form is open
+          if (cRoute === '/login' || cRoute === '/error') {
+              this.formRemove(iFrame, form, formBackDrop);
+              this.logout();
+          } // else this will be open on the other pages
+          else if (cRoute !== '/login' && cRoute !== '/error') {
+              closed = iFrame.contentWindow.closed;
+              // the inavitivy watcher should stop and then reset
+              this.stopThenResetTimer();
+
+              // if the token has expired then we close and logout
+              if (!this.cookieService.check('access')) {
+                  console.log('access token found');
+                  this.stopThenResetTimer();
+                  this.formRemove(iFrame, form, formBackDrop);
+                  this.logout();
+              }
+          }
+      } else {
+        console.log('form was not opended');
+
+        // closed is set to true
+        if (closed) {
+            // stop the timer and reset it
+            this.stopThenResetTimer();
+        }
+        this.logout();
+      }
+  }
+
+  logout(): void {
+      this.clearStorage();
+      this.post.setLoginState(false);
+      this.post.setLoggedInUser(null, false);
+      this.clearStorage();
+      this.menuService.closeMenu();
+      this.router.navigate(['login']);
+  }
+
+  checkToken(): boolean {
+      return this.cookieService.check('access') ? true : false;
+  }
+
+  isEmpty(el: HTMLElement): boolean {
+      if (el === null) {
+          return true;
+      }
+      return false;
+  }
+
+  formRemove(
+    frame: HTMLElement,
+    form: HTMLElement,
+    backdrop: HTMLElement
+  ): void {
+      frame.remove();
+      form.remove();
+      backdrop.remove();
+  }
+
+  clearStorage(): void {
+      localStorage.clear();
+      this.cookieService.deleteAll();
+  }
+}
